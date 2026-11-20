@@ -13,6 +13,8 @@ from zoneinfo import ZoneInfo
 
 BOGOTA = ZoneInfo('America/Bogota')
 ROOT = Path(__file__).resolve().parents[1]
+LIGHT_COLORS = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
+DARK_COLORS = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353']
 
 
 def window(end):
@@ -69,12 +71,73 @@ def shade(count):
     return 0 if count == 0 else 1 if count < 5 else 2 if count < 10 else 3 if count < 20 else 4
 
 
+def picture(name, width, height, title=''):
+    description = escape(title, quote=True)
+    return (f'<picture><source media="(prefers-color-scheme: dark)" srcset="assets/{name}-dark.svg">'
+            f'<img src="assets/{name}-light.svg" width="{width}" height="{height}" '
+            f'title="{description}" alt="{description}"></picture>')
+
+
+def hover_chart(counts, updated):
+    """HTML image titles survive GitHub sanitization, unlike titles inside one SVG image."""
+    start, end = date.fromisoformat(next(iter(counts))), date.fromisoformat(next(reversed(counts)))
+    anchor = start - timedelta(days=(start.weekday() + 1) % 7)
+    columns = (end - anchor).days // 7 + 1
+    rows = ['    ' + picture('months', columns * 13, 16, 'Months in the chart')]
+    for weekday, label in enumerate(['   ', 'Mon', '   ', 'Wed', '   ', 'Fri', '   ']):
+        cells = []
+        for column in range(columns):
+            day = anchor + timedelta(days=column * 7 + weekday)
+            if day < start or day > end:
+                cells.append(picture('day-blank', 13, 13))
+                continue
+            count = counts[day.isoformat()]
+            title = f'{count:,} merged {"PR" if count == 1 else "PRs"} on {day.strftime("%B")} {day.day}, {day.year}'
+            cells.append(picture(f'day-{shade(count)}', 13, 13, title))
+        rows.append(label + ' ' + ''.join(cells))
+    chart = '<pre>' + '\n'.join(rows) + '</pre>'
+    legend = 'Less ' + ''.join(picture(f'day-{i}', 13, 13, text) for i, text in enumerate(
+        ['0 merged PRs', '1–4 merged PRs', '5–9 merged PRs', '10–19 merged PRs', '20+ merged PRs'])) + ' More'
+    return (f'**{sum(counts.values()):,} merged pull requests in the last 365 days**\n\n'
+            'Hover over a square to see the date and count.\n\n' + chart + '\n\n' + legend + '\n\n'
+            f'{start.strftime("%b %d, %Y")} – {end.strftime("%b %d, %Y")}\n\n'
+            f'Public + private · Updated {updated} · Bogotá time')
+
+
+def hover_assets(counts):
+    start, end = date.fromisoformat(next(iter(counts))), date.fromisoformat(next(reversed(counts)))
+    anchor = start - timedelta(days=(start.weekday() + 1) % 7)
+    columns = (end - anchor).days // 7 + 1
+    assets = {}
+    for theme, colors, ink in [('light', LIGHT_COLORS, '#59636e'), ('dark', DARK_COLORS, '#9198a1')]:
+        for level, color in enumerate(colors + ['none']):
+            name = str(level) if level < 5 else 'blank'
+            assets[f'day-{name}-{theme}.svg'] = (f'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">'
+                                               f'<rect x="1" y="1" width="10" height="10" rx="2" fill="{color}"/></svg>\n')
+        labels = []
+        for value in counts:
+            day = date.fromisoformat(value)
+            if day.day == 1:
+                labels.append(f'<text x="{(day-anchor).days // 7 * 13}" y="12">{day.strftime("%b")}</text>')
+        assets[f'months-{theme}.svg'] = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{columns*13}" height="16" viewBox="0 0 {columns*13} 16">'
+                                        f'<g fill="{ink}" font-size="10" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">'
+                                        + ''.join(labels) + '</g></svg>\n')
+    return assets
+
+
+def replace_readme_chart(readme, chart):
+    start, end = '<!-- PR-CHART:START -->', '<!-- PR-CHART:END -->'
+    if readme.count(start) != 1 or readme.count(end) != 1 or readme.index(start) > readme.index(end):
+        raise ValueError('README must contain exactly one ordered PR-CHART marker pair.')
+    return readme.split(start)[0] + start + '\n' + chart + '\n' + end + readme.split(end)[1]
+
+
 def render_svg(counts, updated, dark=False):
     days = [date.fromisoformat(d) for d in counts]
     start, end = days[0], days[-1]
     anchor = start - timedelta(days=(start.weekday() + 1) % 7)
     ink, soft, border, bg = ('#f0f6fc', '#9198a1', '#3d444d', '#0d1117') if dark else ('#1f2328', '#59636e', '#d1d9e0', '#ffffff')
-    colors = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'] if dark else ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
+    colors = DARK_COLORS if dark else LIGHT_COLORS
     total = sum(counts.values())
     label = f'{total:,} merged pull requests in the last 365 days'
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="760" height="205" viewBox="0 0 760 205" role="img" aria-labelledby="title desc">',
@@ -100,7 +163,7 @@ def render_svg(counts, updated, dark=False):
     return '\n'.join(parts) + '\n'
 
 
-def update(owner, output, end=None, request=graphql, pause=clock.sleep):
+def update(owner, output, end=None, request=graphql, pause=clock.sleep, readme_path=None):
     now = datetime.now(BOGOTA)
     days = window(end or now.date())
     counts = fetch_counts(owner, days, request, pause)
@@ -111,6 +174,8 @@ def update(owner, output, end=None, request=graphql, pause=clock.sleep):
         'merged-prs.json': json.dumps({'timezone': 'America/Bogota', 'updated': now.isoformat(timespec='seconds'),
                                      'counts': counts}, indent=2) + '\n',
     }
+    outputs.update(hover_assets(counts))
+    readme = replace_readme_chart(readme_path.read_text(), hover_chart(counts, updated)) if readme_path else None
     # Fetch and render everything before touching the last successful files.
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=output) as staging:
@@ -118,6 +183,10 @@ def update(owner, output, end=None, request=graphql, pause=clock.sleep):
             Path(staging, name).write_text(content)
         for name in outputs:
             Path(staging, name).replace(output / name)
+    if readme_path:
+        with tempfile.NamedTemporaryFile(mode='w', dir=readme_path.parent, delete=False) as temporary:
+            temporary.write(readme)
+        Path(temporary.name).replace(readme_path)
     print(f'Updated {len(counts)} days: {sum(counts.values()):,} merged pull requests.')
 
 
@@ -127,7 +196,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, default=ROOT / 'assets')
     args = parser.parse_args()
     try:
-        update(args.owner, args.output)
+        update(args.owner, args.output, readme_path=ROOT / 'README.md')
     except (RuntimeError, ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
         print(f'Chart update stopped: {error}', file=sys.stderr)
         sys.exit(1)

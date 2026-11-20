@@ -4,11 +4,35 @@ import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from update_chart import fetch_counts, render_svg, search_for_day, update, window
+from update_chart import fetch_counts, render_svg, search_for_day, update, window, hover_chart, replace_readme_chart
 
 
 class ChartTests(unittest.TestCase):
+    def test_hover_titles_include_every_date_and_exact_count(self):
+        counts = {d.isoformat(): (i % 30) for i, d in enumerate(window(date(2026, 11, 20)))}
+        class Titles(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.days = []
+            def handle_starttag(self, tag, attrs):
+                title = dict(attrs).get('title', '')
+                if tag == 'img' and ' on ' in title:
+                    self.days.append(title)
+        parser = Titles()
+        parser.feed(hover_chart(counts, 'Nov 20, 2026 16:24'))
+        expected = {f'{count:,} merged {"PR" if count == 1 else "PRs"} on {date.fromisoformat(day).strftime("%B")} {date.fromisoformat(day).day}, {date.fromisoformat(day).year}'
+                    for day, count in counts.items()}
+        self.assertEqual(len(parser.days), 365)
+        self.assertEqual(set(parser.days), expected)
+
+    def test_refresh_preserves_handwritten_profile_and_rejects_missing_markers(self):
+        original = 'Personal introduction\n<!-- PR-CHART:START -->\nold\n<!-- PR-CHART:END -->\nPersonal footer'
+        self.assertEqual(replace_readme_chart(original, 'new'), original.replace('old', 'new'))
+        with self.assertRaises(ValueError):
+            replace_readme_chart('Personal introduction without markers', 'new')
+
     def test_bogota_midnight_boundaries_and_leap_day(self):
         query = search_for_day('Lespoir', date(2024, 2, 29))
         self.assertIn('is:pr is:merged author:Lespoir', query)

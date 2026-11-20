@@ -1,7 +1,7 @@
 # Maintaining this profile
 
 `README.md` is the public profile. Edit its introduction and article links by hand.
-The daily workflow updates only the three files in `assets/`.
+The daily workflow updates the marked chart section in `README.md` and the generated files in `assets/`. Text outside the `PR-CHART` markers is preserved.
 
 ## Enable the daily refresh
 
@@ -27,7 +27,7 @@ The workflow uses the built-in `GITHUB_TOKEN` to commit the public images. It us
 
 The script requests GitHub's aggregate `issueCount` for each day, rather than fetching PR records. This avoids the search API's 1,000-record pagination limit. It makes 27 requests containing up to 14 daily searches each, with a short pause between requests. GitHub's search index can lag recent merges.
 
-The color levels are 0, 1–4, 5–9, 10–19 and 20+ merged PRs per day. The chart includes zero days, an exact total, the date range and the last update time. Both light and dark SVGs are generated; GitHub chooses the image matching the reader's theme. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
+The color levels are 0, 1–4, 5–9, 10–19 and 20+ merged PRs per day. The chart includes zero days, an exact total, the date range and the last update time. Each day is a separate small image with an HTML `title`, so hovering shows its date and count directly on GitHub. A preformatted block keeps the calendar aligned and horizontally scrollable on narrow screens. Light and dark image sources follow the reader's theme. The two standalone SVG charts remain available as exports. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
 
 GitHub's own contribution chart remains below the profile README. This image does not replace or change it.
 
@@ -41,6 +41,6 @@ python3 -m unittest discover -s tests -v
 python3 scripts/update_chart.py
 ```
 
-The tests cover Bogotá day boundaries, leap years, counts larger than the search pagination cap, incomplete responses, wrong-account credentials, exact SVG totals, and preserving old output after a failed lookup.
+The tests cover Bogotá day boundaries, leap years, counts larger than the search pagination cap, incomplete responses, wrong-account credentials, exact SVG totals, preserving old output after a failed lookup, all 365 hover labels, and preserving hand-written profile content during refresh.
 
 Sources: [GitHub search qualifiers](https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests), [token permissions and owner limitations](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens), [scheduled workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule).
