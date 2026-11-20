@@ -42,5 +42,5 @@ Less <picture><source media="(prefers-color-scheme: dark)" srcset="assets/day-0-
 
 Nov 21, 2025 – Nov 20, 2026
 
-Public + private · Updated Nov 20, 2026 16:33 · Bogotá time
+Updated Nov 20, 2026 16:33 · Bogotá time
 <!-- PR-CHART:END -->

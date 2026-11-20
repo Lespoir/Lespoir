@@ -101,7 +101,7 @@ def hover_chart(counts, updated):
     return (f'**{sum(counts.values()):,} merged pull requests in the last 365 days**\n\n'
             'Hover over a square to see the date and count.\n\n' + chart + '\n\n' + legend + '\n\n'
             f'{start.strftime("%b %d, %Y")} – {end.strftime("%b %d, %Y")}\n\n'
-            f'Public + private · Updated {updated} · Bogotá time')
+            f'Updated {updated} · Bogotá time')
 
 
 def hover_assets(counts):
@@ -159,7 +159,7 @@ def render_svg(counts, updated, dark=False):
     for i, color in enumerate(colors):
         parts.append(f'<rect x="{657+i*12}" y="162" width="9" height="9" rx="2" fill="{color}"/>')
     parts.append('<text x="721" y="171">More</text>')
-    parts.append(f'<text x="18" y="190">Public + private · Updated {escape(updated)} · Bogotá time</text></g></svg>')
+    parts.append(f'<text x="18" y="190">Updated {escape(updated)} · Bogotá time</text></g></svg>')
     return '\n'.join(parts) + '\n'
 
 
