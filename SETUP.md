@@ -15,7 +15,7 @@ The displayed update time makes an old snapshot recognizable.
 
 A fine-grained token is an alternative if you choose a single repository owner and grant the required read access to its pull requests. Its results are limited to repositories that token can access. Fine-grained tokens cannot span multiple organizations. Changing token access can change the totals even when no PRs changed.
 
-The workflow uses the built-in `GITHUB_TOKEN` to commit the public images. It uses `PR_STATS_TOKEN` only during the count lookup. It does not run on pull requests or fork contributions.
+The workflow uses the built-in `GITHUB_TOKEN` to commit the public images and publish the interactive page through GitHub Pages. It uses `PR_STATS_TOKEN` only during the count lookup. It does not run on pull requests or fork contributions.
 
 ## What the chart counts
 
@@ -27,9 +27,15 @@ The workflow uses the built-in `GITHUB_TOKEN` to commit the public images. It us
 
 The script requests GitHub's aggregate `issueCount` for each day, rather than fetching PR records. This avoids the search API's 1,000-record pagination limit. It makes 27 requests containing up to 14 daily searches each, with a short pause between requests. GitHub's search index can lag recent merges.
 
-The color levels are 0, 1–4, 5–9, 10–19 and 20+ merged PRs per day. The chart includes zero days, an exact total, the date range and the last update time. Each day is a separate small image with an HTML `title`, so hovering shows its date and count directly on GitHub. A preformatted block keeps the calendar aligned and horizontally scrollable on narrow screens. Light and dark image sources follow the reader's theme. The two standalone SVG charts remain available as exports. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
+The color levels are 0, 1–4, 5–9, 10–19 and 20+ merged PRs per day. The chart includes zero days, an exact total, the date range and the last update time. The README shows one compact SVG chart. Clicking it opens [the interactive chart](https://lespoir.github.io/Lespoir/), where hovering, tapping or using the arrow keys reveals each day’s date and count. Both views use the same light and dark SVG snapshots and follow the reader’s theme. The interactive page scrolls horizontally on narrow screens. GitHub strips the styles and inline SVG needed for this interaction inside a README. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
 
 GitHub's own contribution chart remains below the profile README. This image does not replace or change it.
+
+## Interactive page deployment
+
+In [Pages settings](https://github.com/Lespoir/Lespoir/settings/pages), the source must be **GitHub Actions**. The daily workflow first saves the new counts, then builds and deploys the interactive page from the updated main branch. Changes to page code also deploy automatically on pushes to main. This keeps both views in sync even though commits made by `GITHUB_TOKEN` do not trigger another workflow.
+
+Only the generated `_site/` directory is uploaded to Pages. It contains the standalone chart page, with the same aggregate data already shown in the README. The page has no credentials, API calls or external scripts.
 
 ## Run locally
 
@@ -39,8 +45,9 @@ No Python packages are required. Do not extract credentials from the CLI.
 ```sh
 python3 -m unittest discover -s tests -v
 python3 scripts/update_chart.py
+python3 scripts/build_page.py
 ```
 
-The tests cover Bogotá day boundaries, leap years, counts larger than the search pagination cap, incomplete responses, wrong-account credentials, exact SVG totals, preserving old output after a failed lookup, all 365 hover labels, and preserving hand-written profile content during refresh.
+The tests cover Bogotá day boundaries, leap years, counts larger than the search pagination cap, incomplete responses, wrong-account credentials, exact SVG totals, preserving old output after a failed lookup, all 365 day labels in each theme, building the interactive page from the same snapshots, and preserving hand-written profile content during refresh.
 
 Sources: [GitHub search qualifiers](https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests), [token permissions and owner limitations](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens), [scheduled workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule).

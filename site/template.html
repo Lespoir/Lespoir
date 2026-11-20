@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Explore David Avila’s daily merged pull requests.">
+<title>Merged pull requests · David Avila</title>
+<style>
+:root{color-scheme:light dark;--background:#fff;--foreground:#1f2328;--muted:#59636e;--link:#0969da;--line:#d1d9e0;--tooltip:#25292e;--tooltip-text:#fff}
+@media(prefers-color-scheme:dark){:root{--background:#0d1117;--foreground:#f0f6fc;--muted:#9198a1;--link:#58a6ff;--line:#3d444d;--tooltip:#f0f6fc;--tooltip-text:#1f2328}}
+*{box-sizing:border-box}body{margin:0;background:var(--background);color:var(--foreground);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:824px;margin:64px auto;padding:0 24px}a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}a:focus-visible,button:focus-visible{outline:2px solid var(--link);outline-offset:4px}header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:35px}.identity{font-weight:600}h1{font-size:24px;line-height:1.3;font-weight:600;letter-spacing:-.02em;margin:0 0 10px}.help{color:var(--muted);margin:0 0 22px}.calendar{overflow-x:auto;scrollbar-color:var(--line) var(--background);scrollbar-width:thin;padding:3px}.calendar svg{width:760px;height:205px;display:block}.dark-chart{display:none}@media(prefers-color-scheme:dark){.light-chart{display:none}.dark-chart{display:block}}rect[tabindex]{cursor:crosshair;outline:none}rect[tabindex]:hover,rect[tabindex]:focus{stroke:var(--link);stroke-width:2px}.details{display:flex;justify-content:space-between;gap:20px;align-items:start;margin-top:14px;min-height:44px;color:var(--muted);font-size:12px}.details p{margin:0}#selection{color:var(--foreground);font-size:13px;font-weight:500;min-width:160px}.refresh{max-width:280px;text-align:right}#tooltip{position:fixed;z-index:2;max-width:calc(100vw - 24px);padding:8px 12px;border-radius:6px;background:var(--tooltip);color:var(--tooltip-text);font-size:12px;font-weight:500;box-shadow:0 4px 12px #0002;pointer-events:none}#tooltip[hidden]{display:none}footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}::selection{background:color-mix(in srgb,var(--link) 25%,transparent)}@media(max-width:600px){main{margin:28px auto;padding:0 16px}header{margin-bottom:26px}.details{display:block}.refresh{text-align:left;max-width:none;margin-top:10px!important}.help{max-width:40ch}}
+</style>
+</head>
+<body>
+<main>
+<header><span class="identity">David Avila</span><a href="https://github.com/Lespoir">Back to GitHub profile</a></header>
+<h1>Merged pull requests</h1>
+<p class="help">Hover over a day to see its count. On a phone, tap a square. Use the arrow keys to move between days.</p>
+<div class="calendar" aria-label="Daily merged pull request calendar">
+<div class="light-chart">__LIGHT_CHART__</div>
+<div class="dark-chart">__DARK_CHART__</div>
+</div>
+<div class="details"><p id="selection" role="status" aria-live="polite">Select a day to explore.</p><p class="refresh">Updated daily. Dates use Bogotá time.<br>On smaller screens, scroll the chart sideways.</p></div>
+<footer>Counts reflect pull requests I authored, grouped by the day they were merged.</footer>
+<noscript><p>Hovering still shows each day’s date and count. Keyboard navigation and tap details require JavaScript.</p></noscript>
+</main>
+<div id="tooltip" role="tooltip" hidden></div>
+<script>
+const tooltip = document.getElementById('tooltip');
+const selection = document.getElementById('selection');
+function hide() { tooltip.hidden = true; }
+function positionTooltip(cell) {
+  const box = cell.getBoundingClientRect();
+  const width = tooltip.offsetWidth;
+  const left = Math.max(12, Math.min(window.innerWidth - width - 12, box.x + box.width / 2 - width / 2));
+  const above = box.y - tooltip.offsetHeight - 10;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = (above > 8 ? above : box.bottom + 10) + 'px';
+}
+function show(cell) {
+  tooltip.textContent = cell.getAttribute('aria-label');
+  tooltip.hidden = false;
+  selection.textContent = tooltip.textContent;
+  positionTooltip(cell);
+}
+for (const svg of document.querySelectorAll('.calendar svg')) {
+  svg.setAttribute('role', 'group');
+  const cells = [...svg.querySelectorAll('rect')].filter(cell => cell.querySelector('title'));
+  // SVG order is chronological. Left/right move one week; up/down move one day.
+  cells.forEach((cell, index) => {
+    const title = cell.querySelector('title');
+    const label = title.textContent;
+    cell.setAttribute('aria-label', label);
+    cell.setAttribute('aria-describedby', 'tooltip');
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('tabindex', index === cells.length - 1 ? '0' : '-1');
+    title.remove();
+    const activate = () => {
+      cells.forEach(other => other.setAttribute('tabindex', other === cell ? '0' : '-1'));
+      show(cell);
+    };
+    cell.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') activate(); });
+    cell.addEventListener('pointerleave', () => { if (document.activeElement !== cell) hide(); });
+    cell.addEventListener('focus', activate);
+    cell.addEventListener('blur', hide);
+    cell.addEventListener('click', () => { cell.focus({preventScroll:true}); activate(); });
+    cell.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { hide(); return; }
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(); return; }
+      const movement = {ArrowLeft:-7, ArrowRight:7, ArrowUp:-1, ArrowDown:1};
+      let next;
+      if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = cells.length - 1;
+      else if (event.key in movement) next = Math.max(0, Math.min(cells.length - 1, index + movement[event.key]));
+      else return;
+      event.preventDefault();
+      cells[next].focus({preventScroll:true});
+      cells[next].scrollIntoView({block:'nearest',inline:'nearest'});
+      show(cells[next]);
+    });
+  });
+}
+document.querySelector('.calendar').addEventListener('scroll', hide);
+window.addEventListener('resize', hide);
+window.addEventListener('scroll', hide);
+document.addEventListener('pointerdown', event => { if (!event.target.closest('rect[tabindex]')) hide(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', hide);
+</script>
+</body>
+</html>

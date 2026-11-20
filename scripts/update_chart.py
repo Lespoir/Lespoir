@@ -71,58 +71,16 @@ def shade(count):
     return 0 if count == 0 else 1 if count < 5 else 2 if count < 10 else 3 if count < 20 else 4
 
 
-def picture(name, width, height, title=''):
-    description = escape(title, quote=True)
-    return (f'<picture><source media="(prefers-color-scheme: dark)" srcset="assets/{name}-dark.svg">'
-            f'<img src="assets/{name}-light.svg" width="{width}" height="{height}" '
-            f'title="{description}" alt="{description}"></picture>')
+def readme_chart():
+    return """<a href="https://lespoir.github.io/Lespoir/" title="Explore daily merged pull requests">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/merged-prs-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
+    <img alt="Daily merged pull requests over the last 365 days. Click to explore individual days." src="assets/merged-prs-light.svg" width="760">
+  </picture>
+</a>
 
-
-def hover_chart(counts, updated):
-    """HTML image titles survive GitHub sanitization, unlike titles inside one SVG image."""
-    start, end = date.fromisoformat(next(iter(counts))), date.fromisoformat(next(reversed(counts)))
-    anchor = start - timedelta(days=(start.weekday() + 1) % 7)
-    columns = (end - anchor).days // 7 + 1
-    rows = ['    ' + picture('months', columns * 13, 16, 'Months in the chart')]
-    for weekday, label in enumerate(['   ', 'Mon', '   ', 'Wed', '   ', 'Fri', '   ']):
-        cells = []
-        for column in range(columns):
-            day = anchor + timedelta(days=column * 7 + weekday)
-            if day < start or day > end:
-                cells.append(picture('day-blank', 13, 13))
-                continue
-            count = counts[day.isoformat()]
-            title = f'{count:,} merged {"PR" if count == 1 else "PRs"} on {day.strftime("%B")} {day.day}, {day.year}'
-            cells.append(picture(f'day-{shade(count)}', 13, 13, title))
-        rows.append(label + ' ' + ''.join(cells))
-    chart = '<pre>' + '\n'.join(rows) + '</pre>'
-    legend = 'Less ' + ''.join(picture(f'day-{i}', 13, 13, text) for i, text in enumerate(
-        ['0 merged PRs', '1–4 merged PRs', '5–9 merged PRs', '10–19 merged PRs', '20+ merged PRs'])) + ' More'
-    return (f'**{sum(counts.values()):,} merged pull requests in the last 365 days**\n\n'
-            'Hover over a square to see the date and count.\n\n' + chart + '\n\n' + legend + '\n\n'
-            f'{start.strftime("%b %d, %Y")} – {end.strftime("%b %d, %Y")}\n\n'
-            f'Updated {updated} · Bogotá time')
-
-
-def hover_assets(counts):
-    start, end = date.fromisoformat(next(iter(counts))), date.fromisoformat(next(reversed(counts)))
-    anchor = start - timedelta(days=(start.weekday() + 1) % 7)
-    columns = (end - anchor).days // 7 + 1
-    assets = {}
-    for theme, colors, ink in [('light', LIGHT_COLORS, '#59636e'), ('dark', DARK_COLORS, '#9198a1')]:
-        for level, color in enumerate(colors + ['none']):
-            name = str(level) if level < 5 else 'blank'
-            assets[f'day-{name}-{theme}.svg'] = (f'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13">'
-                                               f'<rect x="1" y="1" width="10" height="10" rx="2" fill="{color}"/></svg>\n')
-        labels = []
-        for value in counts:
-            day = date.fromisoformat(value)
-            if day.day == 1:
-                labels.append(f'<text x="{(day-anchor).days // 7 * 13}" y="12">{day.strftime("%b")}</text>')
-        assets[f'months-{theme}.svg'] = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{columns*13}" height="16" viewBox="0 0 {columns*13} 16">'
-                                        f'<g fill="{ink}" font-size="10" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">'
-                                        + ''.join(labels) + '</g></svg>\n')
-    return assets
+[Explore daily counts](https://lespoir.github.io/Lespoir/)"""
 
 
 def replace_readme_chart(readme, chart):
@@ -174,8 +132,7 @@ def update(owner, output, end=None, request=graphql, pause=clock.sleep, readme_p
         'merged-prs.json': json.dumps({'timezone': 'America/Bogota', 'updated': now.isoformat(timespec='seconds'),
                                      'counts': counts}, indent=2) + '\n',
     }
-    outputs.update(hover_assets(counts))
-    readme = replace_readme_chart(readme_path.read_text(), hover_chart(counts, updated)) if readme_path else None
+    readme = replace_readme_chart(readme_path.read_text(), readme_chart()) if readme_path else None
     # Fetch and render everything before touching the last successful files.
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=output) as staging:
