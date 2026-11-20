@@ -78,9 +78,7 @@ def readme_chart():
     <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
     <img alt="Daily merged pull requests over the last 365 days. Click to explore individual days." src="assets/merged-prs-light.svg" width="760">
   </picture>
-</a>
-
-[Explore daily counts](https://lespoir.github.io/Lespoir/)"""
+</a>"""
 
 
 def replace_readme_chart(readme, chart):

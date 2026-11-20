@@ -32,6 +32,4 @@ A story about finding out which tests were earning their place.
     <img alt="Daily merged pull requests over the last 365 days. Click to explore individual days." src="assets/merged-prs-light.svg" width="760">
   </picture>
 </a>
-
-[Explore daily counts](https://lespoir.github.io/Lespoir/)
 <!-- PR-CHART:END -->
