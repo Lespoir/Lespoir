@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from update_chart import fetch_counts, render_svg, render_daily_svg, search_for_day, update, window, readme_chart, replace_readme_chart
+from update_chart import PROFILE_START, fetch_counts, render_svg, render_daily_svg, search_for_day, update, window, readme_chart, replace_readme_chart
 
 from build_page import build
 
@@ -102,21 +102,24 @@ class ChartTests(unittest.TestCase):
             self.assertNotIn('http://github', svg)
 
     def test_monthly_bars_preserve_totals_zero_months_and_partial_boundaries(self):
-        for end in (date(2026, 11, 22), date(2026, 11, 30), date(2024, 2, 29)):
-            counts = {d.isoformat(): i % 31 if d.month != 4 else 0
+        for end in (date(2026, 11, 22), date(2026, 11, 30), date(2027, 2, 28)):
+            counts = {d.isoformat(): i % 31 if d.month != 9 else 0
                       for i, d in enumerate(window(end))}
             expected = defaultdict(int)
             for day, count in counts.items():
-                expected[day[:7]] += count
+                if date.fromisoformat(day) >= PROFILE_START:
+                    expected[day[:7]] += count
             for dark in (False, True):
                 svg = render_svg(dict(reversed(list(counts.items()))), 'Nov 22, 2026 13:34', dark)
                 root = ET.fromstring(svg)
                 bars = root.findall('.//{http://www.w3.org/2000/svg}rect[@data-month]')
                 self.assertEqual({bar.get('data-month'): int(bar.get('data-count')) for bar in bars}, expected)
-                self.assertEqual(sum(int(bar.get('data-count')) for bar in bars), sum(counts.values()))
-                self.assertIn(f'{sum(counts.values()):,} merged pull requests', svg)
-                self.assertEqual(bars[0].get('data-partial'), str(window(end)[0].day != 1).lower())
-                self.assertEqual(bars[-1].get('data-partial'), str(end.day not in (29, 30)).lower())
+                self.assertEqual(sum(int(bar.get('data-count')) for bar in bars), sum(expected.values()))
+                self.assertIn(f'{sum(expected.values()):,} merged pull requests', svg)
+                self.assertEqual(bars[0].get('data-month'), '2026-08')
+                self.assertEqual(bars[0].get('data-partial'), 'false')
+                self.assertEqual(bars[-1].get('data-partial'), str(end == date(2026, 11, 22)).lower())
+                self.assertNotIn('365', svg)
                 for bar in bars:
                     self.assertLessEqual(float(bar.get('x')) + float(bar.get('width')), 730)
                     self.assertGreaterEqual(float(bar.get('y')), 88)
@@ -127,7 +130,7 @@ class ChartTests(unittest.TestCase):
         svg = render_svg(counts, 'Nov 22, 2026 13:34')
         root = ET.fromstring(svg)
         bars = root.findall('.//{http://www.w3.org/2000/svg}rect[@data-month]')
-        self.assertEqual(len(bars), 13)
+        self.assertEqual(len(bars), 4)
         self.assertTrue(all(float(bar.get('height')) == 0 for bar in bars))
         self.assertIn('0 merged pull requests', svg)
 

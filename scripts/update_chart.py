@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 
 BOGOTA = ZoneInfo('America/Bogota')
 ROOT = Path(__file__).resolve().parents[1]
+PROFILE_START = date(2026, 8, 1)
 LIGHT_COLORS = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39']
 DARK_COLORS = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353']
 
@@ -78,7 +79,7 @@ def readme_chart():
     return """<picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/merged-prs-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
-  <img alt="Monthly merged pull request totals over the last 365 days." src="assets/merged-prs-light.svg" width="100%">
+  <img alt="Monthly merged pull request totals from August 2026 onward." src="assets/merged-prs-light.svg" width="100%">
 </picture>"""
 
 
@@ -122,6 +123,9 @@ def render_daily_svg(counts, updated, dark=False):
 
 
 def render_svg(counts, updated, dark=False):
+    counts = {day: count for day, count in counts.items() if date.fromisoformat(day) >= PROFILE_START}
+    if not counts:
+        raise ValueError('No daily counts are available for the profile display period.')
     days = sorted(date.fromisoformat(day) for day in counts)
     start, end = days[0], days[-1]
     months = defaultdict(int)
@@ -140,7 +144,7 @@ def render_svg(counts, updated, dark=False):
     period = f'{start.strftime("%b %d, %Y")} – {end.strftime("%b %d, %Y")}'
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">',
-        f'<title id="title">{label} in the last 365 days</title>',
+        f'<title id="title">{label} · {period}</title>',
         f'<desc id="desc">PRs authored by Lespoir, grouped by merge month in America/Bogota. {period}. Asterisks mark partial months within this window. Updated {escape(updated)}.</desc>',
         f'<rect x=".5" y=".5" width="759" height="299" rx="6" fill="{bg}" stroke="{border}"/>',
         f'<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11" fill="{soft}">',
@@ -154,6 +158,7 @@ def render_svg(counts, updated, dark=False):
             f'<text x="39" y="{y + 4:g}" text-anchor="end">{value:,.0f}</text>',
         ])
     step = 676 / len(months)
+    bar_width = min(72, step * 0.62)
     for index, (month, count) in enumerate(months.items()):
         last_day = month.replace(day=monthrange(month.year, month.month)[1])
         partial = month < start or last_day > end
@@ -161,16 +166,17 @@ def render_svg(counts, updated, dark=False):
         title = f'{month.strftime("%B %Y")}: {count:,} merged PRs'
         if partial:
             title += f' ({max(start, month):%b %d}–{min(end, last_day):%b %d}; partial month)'
-        x = 56 + index * step
+        center = 48 + (index + 0.5) * step
+        x = center - bar_width / 2
         height = count / ceiling * 130
         color = current if month == end.replace(day=1) else bar
         parts.extend([
-            f'<rect x="{x:.2f}" y="{218 - height:.2f}" width="32" height="{height:.2f}" rx="3" fill="{color}" data-month="{month:%Y-%m}" data-count="{count}" data-partial="{str(partial).lower()}"><title>{title}</title></rect>',
-            f'<text x="{x + 16:.2f}" y="{208 - height:.2f}" text-anchor="middle" fill="{ink}" font-size="12" font-weight="600">{count:,}</text>',
-            f'<text x="{x + 16:.2f}" y="239" text-anchor="middle">{name}</text>',
+            f'<rect x="{x:.2f}" y="{218 - height:.2f}" width="{bar_width:.2f}" height="{height:.2f}" rx="3" fill="{color}" data-month="{month:%Y-%m}" data-count="{count}" data-partial="{str(partial).lower()}"><title>{title}</title></rect>',
+            f'<text x="{center:.2f}" y="{208 - height:.2f}" text-anchor="middle" fill="{ink}" font-size="12" font-weight="600">{count:,}</text>',
+            f'<text x="{center:.2f}" y="239" text-anchor="middle">{name}</text>',
         ])
     parts.extend([
-        '<text x="22" y="266">* Partial months in this 365-day window.</text>',
+        '<text x="22" y="266">* Partial month within the displayed period.</text>',
         f'<text x="22" y="286">Updated {escape(updated)} · Bogotá time</text>',
         '</g></svg>',
     ])

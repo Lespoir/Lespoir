@@ -28,6 +28,6 @@ A story about finding out which tests were earning their place.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/merged-prs-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
-  <img alt="Monthly merged pull request totals over the last 365 days." src="assets/merged-prs-light.svg" width="100%">
+  <img alt="Monthly merged pull request totals from August 2026 onward." src="assets/merged-prs-light.svg" width="100%">
 </picture>
 <!-- PR-CHART:END -->

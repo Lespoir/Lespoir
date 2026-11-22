@@ -27,7 +27,7 @@ The workflow uses the built-in `GITHUB_TOKEN` to commit the public images and pu
 
 The script requests GitHub's aggregate `issueCount` for each day, rather than fetching PR records. This avoids the search API's 1,000-record pagination limit. It makes 27 requests containing up to 14 daily searches each, with a short pause between requests. GitHub's search index can lag recent merges.
 
-The README shows a full-width image with no click action. Its monthly bars have exact counts, an exact yearly total, the date range and the last update time. Months are calendar months within the rolling 365-day window; asterisks identify partial months, and the final month is purple. Zero months remain visible. The vertical axis starts at zero and adjusts to the largest monthly count.
+The README shows a full-width image with no click action. Its monthly bars have exact counts, an exact total for the displayed period, the date range and the last update time. The profile displays August 1, 2026 onward, restricted to dates present in the rolling 365-day source snapshot. Its total includes only those displayed dates. Months are calendar months; asterisks identify partial months, and the final month is purple. Zero months remain visible. The vertical axis starts at zero and adjusts to the largest monthly count.
 
 The earlier [daily-detail page](https://lespoir.github.io/Lespoir/) remains available at its existing address, but the profile no longer links to it. Both views use the same daily JSON snapshot and follow the reader’s light or dark theme. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
 
