@@ -13,10 +13,13 @@ from build_page import build
 
 
 class ChartTests(unittest.TestCase):
-    def test_readme_uses_one_compact_image_linked_to_the_interactive_page(self):
+    def test_readme_uses_one_full_width_image_without_navigation(self):
         markup = readme_chart()
         self.assertEqual(markup.count('<img '), 1)
-        self.assertIn('href="https://lespoir.github.io/Lespoir/"', markup)
+        self.assertIn('width="100%"', markup)
+        self.assertNotIn('<a ', markup)
+        self.assertNotIn('href=', markup)
+        self.assertNotIn('Click to explore', markup)
         self.assertIn('assets/merged-prs-dark.svg', markup)
         self.assertNotIn('<pre>', markup)
         self.assertNotIn('Public + private', markup)

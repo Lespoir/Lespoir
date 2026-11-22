@@ -25,11 +25,9 @@ A story about finding out which tests were earning their place.
 ## Merged pull requests
 
 <!-- PR-CHART:START -->
-<a href="https://lespoir.github.io/Lespoir/" title="Explore daily merged pull requests">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/merged-prs-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
-    <img alt="Monthly merged pull request totals over the last 365 days. Click to explore individual days." src="assets/merged-prs-light.svg" width="760">
-  </picture>
-</a>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/merged-prs-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
+  <img alt="Monthly merged pull request totals over the last 365 days." src="assets/merged-prs-light.svg" width="100%">
+</picture>
 <!-- PR-CHART:END -->

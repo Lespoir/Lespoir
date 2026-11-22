@@ -27,9 +27,9 @@ The workflow uses the built-in `GITHUB_TOKEN` to commit the public images and pu
 
 The script requests GitHub's aggregate `issueCount` for each day, rather than fetching PR records. This avoids the search API's 1,000-record pagination limit. It makes 27 requests containing up to 14 daily searches each, with a short pause between requests. GitHub's search index can lag recent merges.
 
-The README shows monthly bars with exact counts, an exact yearly total, the date range and the last update time. Months are calendar months within the rolling 365-day window; asterisks identify partial months, and the final month is purple. Zero months remain visible. The vertical axis starts at zero and adjusts to the largest monthly count.
+The README shows a full-width image with no click action. Its monthly bars have exact counts, an exact yearly total, the date range and the last update time. Months are calendar months within the rolling 365-day window; asterisks identify partial months, and the final month is purple. Zero months remain visible. The vertical axis starts at zero and adjusts to the largest monthly count.
 
-Clicking the chart opens [daily details](https://lespoir.github.io/Lespoir/), where hovering, tapping or using the arrow keys reveals each day’s date and count on a calendar. Both views are built from the same daily JSON snapshot and follow the reader’s light or dark theme. The daily calendar scrolls horizontally on narrow screens. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
+The earlier [daily-detail page](https://lespoir.github.io/Lespoir/) remains available at its existing address, but the profile no longer links to it. Both views use the same daily JSON snapshot and follow the reader’s light or dark theme. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
 
 GitHub's own contribution chart remains below the profile README. This image does not replace or change it.
 
