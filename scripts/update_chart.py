@@ -1,6 +1,9 @@
 """Generate a PR-only activity chart. Fetch aggregate counts, never PR metadata."""
 import argparse
+from calendar import monthrange
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
+from math import ceil
 from html import escape
 import json
 from pathlib import Path
@@ -76,7 +79,7 @@ def readme_chart():
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/merged-prs-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/merged-prs-light.svg">
-    <img alt="Daily merged pull requests over the last 365 days. Click to explore individual days." src="assets/merged-prs-light.svg" width="760">
+    <img alt="Monthly merged pull request totals over the last 365 days. Click to explore individual days." src="assets/merged-prs-light.svg" width="760">
   </picture>
 </a>"""
 
@@ -88,7 +91,7 @@ def replace_readme_chart(readme, chart):
     return readme.split(start)[0] + start + '\n' + chart + '\n' + end + readme.split(end)[1]
 
 
-def render_svg(counts, updated, dark=False):
+def render_daily_svg(counts, updated, dark=False):
     days = [date.fromisoformat(d) for d in counts]
     start, end = days[0], days[-1]
     anchor = start - timedelta(days=(start.weekday() + 1) % 7)
@@ -116,6 +119,63 @@ def render_svg(counts, updated, dark=False):
         parts.append(f'<rect x="{657+i*12}" y="162" width="9" height="9" rx="2" fill="{color}"/>')
     parts.append('<text x="721" y="171">More</text>')
     parts.append(f'<text x="18" y="190">Updated {escape(updated)} · Bogotá time</text></g></svg>')
+    return '\n'.join(parts) + '\n'
+
+
+
+def render_svg(counts, updated, dark=False):
+    days = sorted(date.fromisoformat(day) for day in counts)
+    start, end = days[0], days[-1]
+    months = defaultdict(int)
+    for day in days:
+        months[day.replace(day=1)] += counts[day.isoformat()]
+    ink, soft, border, bg, bar, current = (
+        ('#f0f6fc', '#a5afbb', '#30363d', '#0d1117', '#79b8ff', '#c4a7ff') if dark else
+        ('#1f2328', '#59636e', '#d8dee4', '#ffffff', '#376fba', '#7759b6')
+    )
+    total = sum(counts.values())
+    maximum = max(months.values())
+    # Leave room for value labels above the tallest bar, including an all-zero year.
+    magnitude = 10 ** max(0, len(str(maximum)) - 1)
+    ceiling = max(2, ceil(maximum * 1.15 / magnitude) * magnitude)
+    label = f'{total:,} merged pull requests'
+    period = f'{start.strftime("%b %d, %Y")} – {end.strftime("%b %d, %Y")}'
+    parts = [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">',
+        f'<title id="title">{label} in the last 365 days</title>',
+        f'<desc id="desc">PRs authored by Lespoir, grouped by merge month in America/Bogota. {period}. Asterisks mark partial months within this window. Updated {escape(updated)}.</desc>',
+        f'<rect x=".5" y=".5" width="759" height="299" rx="6" fill="{bg}" stroke="{border}"/>',
+        f'<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11" fill="{soft}">',
+        f'<text x="22" y="32" fill="{ink}" font-size="17" font-weight="600">{label}</text>',
+        f'<text x="22" y="54">Monthly totals · {period}</text>',
+    ]
+    for value in (0, ceiling / 2, ceiling):
+        y = 218 - value / ceiling * 130
+        parts.extend([
+            f'<path d="M48 {y:g}H730" stroke="{border}" fill="none"/>',
+            f'<text x="39" y="{y + 4:g}" text-anchor="end">{value:,.0f}</text>',
+        ])
+    step = 676 / len(months)
+    for index, (month, count) in enumerate(months.items()):
+        last_day = month.replace(day=monthrange(month.year, month.month)[1])
+        partial = month < start or last_day > end
+        name = month.strftime('%b') + ('*' if partial else '')
+        title = f'{month.strftime("%B %Y")}: {count:,} merged PRs'
+        if partial:
+            title += f' ({max(start, month):%b %d}–{min(end, last_day):%b %d}; partial month)'
+        x = 56 + index * step
+        height = count / ceiling * 130
+        color = current if month == end.replace(day=1) else bar
+        parts.extend([
+            f'<rect x="{x:.2f}" y="{218 - height:.2f}" width="32" height="{height:.2f}" rx="3" fill="{color}" data-month="{month:%Y-%m}" data-count="{count}" data-partial="{str(partial).lower()}"><title>{title}</title></rect>',
+            f'<text x="{x + 16:.2f}" y="{208 - height:.2f}" text-anchor="middle" fill="{ink}" font-size="12" font-weight="600">{count:,}</text>',
+            f'<text x="{x + 16:.2f}" y="239" text-anchor="middle">{name}</text>',
+        ])
+    parts.extend([
+        '<text x="22" y="266">* Partial months in this 365-day window.</text>',
+        f'<text x="22" y="286">Updated {escape(updated)} · Bogotá time</text>',
+        '</g></svg>',
+    ])
     return '\n'.join(parts) + '\n'
 
 

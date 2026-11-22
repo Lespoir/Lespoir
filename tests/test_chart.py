@@ -1,11 +1,13 @@
 from datetime import date
+from collections import defaultdict
+import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from update_chart import fetch_counts, render_svg, search_for_day, update, window, readme_chart, replace_readme_chart
+from update_chart import fetch_counts, render_svg, render_daily_svg, search_for_day, update, window, readme_chart, replace_readme_chart
 
 from build_page import build
 
@@ -19,11 +21,13 @@ class ChartTests(unittest.TestCase):
         self.assertNotIn('<pre>', markup)
         self.assertNotIn('Public + private', markup)
 
-    def test_interactive_page_embeds_the_exact_chart_snapshots_in_both_themes(self):
+    def test_interactive_page_preserves_all_daily_counts_in_both_themes(self):
         with tempfile.TemporaryDirectory() as tmp:
             build(Path(tmp))
             page = (Path(tmp) / 'index.html').read_text()
-            self.assertEqual(page.count(' merged PRs</title>'), 730)
+            snapshot = json.loads((Path(__file__).resolve().parents[1] / 'assets/merged-prs.json').read_text())
+            for day, count in snapshot['counts'].items():
+                self.assertEqual(page.count(f'{day}: {count} merged PRs</title>'), 2)
             self.assertIn('id="title-light"', page)
             self.assertIn('id="title-dark"', page)
             self.assertNotIn('__LIGHT_CHART__', page)
@@ -83,7 +87,7 @@ class ChartTests(unittest.TestCase):
     def test_svg_carries_exact_daily_counts_in_both_themes(self):
         counts = {d.isoformat(): (i % 30) for i, d in enumerate(window(date(2026, 11, 20)))}
         for dark in (False, True):
-            svg = render_svg(counts, 'Nov 20, 2026 16:00', dark)
+            svg = render_daily_svg(counts, 'Nov 20, 2026 16:00', dark)
             root = ET.fromstring(svg)
             ns = {'s': 'http://www.w3.org/2000/svg'}
             titles = root.findall('.//s:rect/s:title', ns)
@@ -93,6 +97,36 @@ class ChartTests(unittest.TestCase):
             for rect in root.findall('.//s:rect', ns):
                 self.assertLessEqual(float(rect.attrib['x']) + float(rect.attrib['width']), 760)
             self.assertNotIn('http://github', svg)
+
+    def test_monthly_bars_preserve_totals_zero_months_and_partial_boundaries(self):
+        for end in (date(2026, 11, 22), date(2026, 11, 30), date(2024, 2, 29)):
+            counts = {d.isoformat(): i % 31 if d.month != 4 else 0
+                      for i, d in enumerate(window(end))}
+            expected = defaultdict(int)
+            for day, count in counts.items():
+                expected[day[:7]] += count
+            for dark in (False, True):
+                svg = render_svg(dict(reversed(list(counts.items()))), 'Nov 22, 2026 13:34', dark)
+                root = ET.fromstring(svg)
+                bars = root.findall('.//{http://www.w3.org/2000/svg}rect[@data-month]')
+                self.assertEqual({bar.get('data-month'): int(bar.get('data-count')) for bar in bars}, expected)
+                self.assertEqual(sum(int(bar.get('data-count')) for bar in bars), sum(counts.values()))
+                self.assertIn(f'{sum(counts.values()):,} merged pull requests', svg)
+                self.assertEqual(bars[0].get('data-partial'), str(window(end)[0].day != 1).lower())
+                self.assertEqual(bars[-1].get('data-partial'), str(end.day not in (29, 30)).lower())
+                for bar in bars:
+                    self.assertLessEqual(float(bar.get('x')) + float(bar.get('width')), 730)
+                    self.assertGreaterEqual(float(bar.get('y')), 88)
+                    self.assertGreaterEqual(float(bar.get('height')), 0)
+
+    def test_empty_activity_keeps_month_labels_and_zero_baseline(self):
+        counts = {d.isoformat(): 0 for d in window(date(2026, 11, 22))}
+        svg = render_svg(counts, 'Nov 22, 2026 13:34')
+        root = ET.fromstring(svg)
+        bars = root.findall('.//{http://www.w3.org/2000/svg}rect[@data-month]')
+        self.assertEqual(len(bars), 13)
+        self.assertTrue(all(float(bar.get('height')) == 0 for bar in bars))
+        self.assertIn('0 merged pull requests', svg)
 
 
 if __name__ == '__main__':

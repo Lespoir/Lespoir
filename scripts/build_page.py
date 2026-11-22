@@ -1,14 +1,20 @@
-"""Publish only the chart page, built from the same SVG snapshots as the README."""
+"""Build daily details from the same aggregate snapshot as the monthly README chart."""
 from pathlib import Path
 import argparse
+from datetime import datetime
+import json
+
+from update_chart import render_daily_svg
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def build(output):
     page = (ROOT / 'site/template.html').read_text()
+    snapshot = json.loads((ROOT / 'assets/merged-prs.json').read_text())
+    updated = datetime.fromisoformat(snapshot['updated']).strftime('%b %d, %Y %H:%M')
     for theme in ('light', 'dark'):
-        svg = (ROOT / f'assets/merged-prs-{theme}.svg').read_text()
+        svg = render_daily_svg(snapshot['counts'], updated, dark=theme == 'dark')
         # Every inline SVG needs its own accessible-name IDs.
         svg = svg.replace('id="title"', f'id="title-{theme}"').replace('id="desc"', f'id="desc-{theme}"')
         svg = svg.replace('aria-labelledby="title desc"', f'aria-labelledby="title-{theme} desc-{theme}"')

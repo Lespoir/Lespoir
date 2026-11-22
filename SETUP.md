@@ -27,7 +27,9 @@ The workflow uses the built-in `GITHUB_TOKEN` to commit the public images and pu
 
 The script requests GitHub's aggregate `issueCount` for each day, rather than fetching PR records. This avoids the search API's 1,000-record pagination limit. It makes 27 requests containing up to 14 daily searches each, with a short pause between requests. GitHub's search index can lag recent merges.
 
-The color levels are 0, 1–4, 5–9, 10–19 and 20+ merged PRs per day. The chart includes zero days, an exact total, the date range and the last update time. The README shows one compact SVG chart. Clicking it opens [the interactive chart](https://lespoir.github.io/Lespoir/), where hovering, tapping or using the arrow keys reveals each day’s date and count. Both views use the same light and dark SVG snapshots and follow the reader’s theme. The interactive page scrolls horizontally on narrow screens. GitHub strips the styles and inline SVG needed for this interaction inside a README. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
+The README shows monthly bars with exact counts, an exact yearly total, the date range and the last update time. Months are calendar months within the rolling 365-day window; asterisks identify partial months, and the final month is purple. Zero months remain visible. The vertical axis starts at zero and adjusts to the largest monthly count.
+
+Clicking the chart opens [daily details](https://lespoir.github.io/Lespoir/), where hovering, tapping or using the arrow keys reveals each day’s date and count on a calendar. Both views are built from the same daily JSON snapshot and follow the reader’s light or dark theme. The daily calendar scrolls horizontally on narrow screens. The JSON contains only dates, counts and update metadata. Git history preserves earlier aggregate snapshots.
 
 GitHub's own contribution chart remains below the profile README. This image does not replace or change it.
 
@@ -48,6 +50,6 @@ python3 scripts/update_chart.py
 python3 scripts/build_page.py
 ```
 
-The tests cover Bogotá day boundaries, leap years, counts larger than the search pagination cap, incomplete responses, wrong-account credentials, exact SVG totals, preserving old output after a failed lookup, all 365 day labels in each theme, building the interactive page from the same snapshots, and preserving hand-written profile content during refresh.
+The tests cover Bogotá day boundaries, leap years, counts larger than the search pagination cap, incomplete responses, wrong-account credentials, exact SVG totals, preserving old output after a failed lookup, all 365 day labels in each theme, monthly totals and partial months, zero activity, building daily details from the same JSON snapshot, and preserving hand-written profile content during refresh.
 
 Sources: [GitHub search qualifiers](https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests), [token permissions and owner limitations](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens), [scheduled workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule).
