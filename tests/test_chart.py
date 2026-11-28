@@ -115,7 +115,8 @@ class ChartTests(unittest.TestCase):
                 bars = root.findall('.//{http://www.w3.org/2000/svg}rect[@data-month]')
                 self.assertEqual({bar.get('data-month'): int(bar.get('data-count')) for bar in bars}, expected)
                 self.assertEqual(sum(int(bar.get('data-count')) for bar in bars), sum(expected.values()))
-                self.assertIn(f'{sum(expected.values()):,} merged pull requests', svg)
+                self.assertNotIn(f'{sum(expected.values()):,} merged pull requests', svg)
+                self.assertIn('Monthly totals', svg)
                 self.assertEqual(bars[0].get('data-month'), '2026-08')
                 self.assertEqual(bars[0].get('data-partial'), 'false')
                 self.assertEqual(bars[-1].get('data-partial'), str(end == date(2026, 11, 22)).lower())
@@ -132,7 +133,7 @@ class ChartTests(unittest.TestCase):
         bars = root.findall('.//{http://www.w3.org/2000/svg}rect[@data-month]')
         self.assertEqual(len(bars), 4)
         self.assertTrue(all(float(bar.get('height')) == 0 for bar in bars))
-        self.assertIn('0 merged pull requests', svg)
+        self.assertNotIn('0 merged pull requests', svg)
 
 
 if __name__ == '__main__':

@@ -140,16 +140,14 @@ def render_svg(counts, updated, dark=False):
     # Leave room for value labels above the tallest bar, including an all-zero year.
     magnitude = 10 ** max(0, len(str(maximum)) - 1)
     ceiling = max(2, ceil(maximum * 1.15 / magnitude) * magnitude)
-    label = f'{total:,} merged pull requests'
     period = f'{start.strftime("%b %d, %Y")} – {end.strftime("%b %d, %Y")}'
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">',
-        f'<title id="title">{label} · {period}</title>',
+        f'<title id="title">Monthly merged pull requests · {period}</title>',
         f'<desc id="desc">PRs authored by Lespoir, grouped by merge month in America/Bogota. {period}. Asterisks mark partial months within this window. Updated {escape(updated)}.</desc>',
         f'<rect x=".5" y=".5" width="759" height="299" rx="6" fill="{bg}" stroke="{border}"/>',
         f'<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="11" fill="{soft}">',
-        f'<text x="22" y="32" fill="{ink}" font-size="17" font-weight="600">{label}</text>',
-        f'<text x="22" y="54">Monthly totals · {period}</text>',
+        f'<text x="22" y="38" fill="{ink}" font-size="15" font-weight="600">Monthly totals · {period}</text>',
     ]
     for value in (0, ceiling / 2, ceiling):
         y = 218 - value / ceiling * 130
